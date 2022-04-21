@@ -1,41 +1,41 @@
 class TimeFormatter
 
-  FORMAT = ["year", "month", "day", "hour", "min", "sec"].freeze
+  FORMAT = { "year" => Time.now.year, "month" => Time.now.month, "day" => Time.now.day, "hour" => Time.now.hour, "minute" => Time.now.min, "sec" => Time.now.sec }.freeze
 
-  attr_accessor :body, :unknown_formats, :replace_arr
+  attr_accessor :unknown_formats, :replace_arr
 
   def initialize(query_string)
     @query_string = query_string
     @unknown_formats = []
     @replace_arr = []
-    @body = body
-    time_checker(query_string)
+  end
+
+  def call
+    format_arr = @query_string.values[0].split(",")
+    time_string(format_arr)
+    if success?
+      ["#{replace_arr.uniq.join("-")}"]
+    else
+      ["Unknown time format #{unknown_formats}"]
+    end
+  end
+
+  def success?
+    unknown_formats.empty?
   end
 
   private
 
-  def time_checker(query_string)
-    @format_arr = query_string.values[0].split(",")
-    format_method(@format_arr)
-    if true_format?(@format_arr)
-      self.body = ["#{self.replace_arr.uniq.join("-")}"]
-    else
-      self.body = ["Unknown time format #{self.unknown_formats}"]
-    end
+  def strftime(item)
+    FORMAT[item]
   end
 
-  def true_format?(arr)
-    arr.all? {|v| FORMAT.include?(v)}
+  def time_string(arr)
+    arr.each { |v| replace_arr.push(strftime(v)) && invalid_string(v) }
   end
 
-  def format_method(format_arr)
-    time = Time.now
-    format_arr.each do |v|
-      unless FORMAT.include?(v)
-        @unknown_formats.push(v)
-      else
-        @replace_arr.push(time.send "#{v}")
-      end
-    end
+  def invalid_string(item)
+    unknown_formats.push(item)  unless FORMAT.include?(item)
   end
+
 end

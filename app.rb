@@ -1,25 +1,27 @@
+require 'rack'
+require_relative 'time_formatter'
+
 class App
-  require 'rack'
-  require_relative 'time_formatter'
 
   def call(env)
-    @env = env
-    @input_format = Rack::Utils.parse_query(@env['QUERY_STRING'])
-    @time_formatter = TimeFormatter.new(@input_format)
-    [status, headers, body]
+    input_format = Rack::Utils.parse_query(env['QUERY_STRING'])
+    t = TimeFormatter.new(input_format)
+    response(t.call, status(t), headers)
   end
 
   private
 
-  def status
-    @time_formatter.unknown_formats.empty? ? 200 : 404
+  def response(body, status, headers)
+    r = Rack::Response.new(body, status, headers)
+    r.finish
+  end
+
+  def status(obj)
+    obj.success? ? 200 : 404
   end
 
   def headers
-    { 'Content-Type' => 'text/plain; charset=utf-8'}
+    { 'Content-Type' => 'text/plain; charset=utf-8' }
   end
 
-  def body
-    [@time_formatter.body.to_s]
-  end
 end
